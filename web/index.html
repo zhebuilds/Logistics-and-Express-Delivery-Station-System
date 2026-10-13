@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>校园驿站管理系统</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 浮动窗口控制按钮 -->
+    <div id="window-controls">
+        <button class="theme-toggle" id="titlebar-theme-btn" title="切换主题">
+            <span class="material-icons-outlined">dark_mode</span>
+        </button>
+        <button class="wc-btn" id="btn-minimize" title="最小化">
+            <span class="material-icons-outlined">remove</span>
+        </button>
+        <button class="wc-btn" id="btn-maximize" title="最大化">
+            <span class="material-icons-outlined">crop_square</span>
+        </button>
+        <button class="wc-btn wc-close" id="btn-close" title="关闭">
+            <span class="material-icons-outlined">close</span>
+        </button>
+    </div>
+
+    <div id="toast-container"></div>
+
+    <!-- ===== 登录视图 ===== -->
+    <div id="login-view" class="view-container active-view flex-center">
+        <div class="md3-card login-card md3-elevation-2">
+            <div class="login-header">
+                <span class="material-icons-outlined logo-icon">local_shipping</span>
+                <h2>数据库连接</h2>
+                <p>输入 MySQL 连接信息</p>
+            </div>
+            <div class="input-group">
+                <span class="material-icons-outlined">dns</span>
+                <input type="text" id="login-host" value="127.0.0.1" placeholder="主机地址">
+            </div>
+            <div class="input-group">
+                <span class="material-icons-outlined">tag</span>
+                <input type="number" id="login-port" value="3306" placeholder="端口">
+            </div>
+            <div class="input-group">
+                <span class="material-icons-outlined">person</span>
+                <input type="text" id="login-user" value="root" placeholder="用户名">
+            </div>
+            <div class="input-group">
+                <span class="material-icons-outlined">lock</span>
+                <input type="password" id="login-pwd" placeholder="密码">
+            </div>
+            <button id="btn-login" class="md3-btn md3-btn-primary mt-2">
+                <span class="material-icons-outlined">login</span> 连接并进入
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== 主界面 ===== -->
+    <div id="dashboard-view" class="view-container">
+        <aside class="sidebar md3-surface">
+            <div class="sidebar-header">
+                <span class="material-icons-outlined text-primary">local_shipping</span>
+                <h3>校园驿站</h3>
+            </div>
+            <nav class="sidebar-nav">
+                <button class="nav-item active" data-target="panel-stats">
+                    <span class="material-icons-outlined">dashboard</span>包裹总览</button>
+                <button class="nav-item" data-target="panel-inbound">
+                    <span class="material-icons-outlined">move_to_inbox</span>包裹入库</button>
+                <button class="nav-item" data-target="panel-outbound">
+                    <span class="material-icons-outlined">outbound</span>扫码出库</button>
+                <button class="nav-item" data-target="panel-send">
+                    <span class="material-icons-outlined">local_post_office</span>寄件服务</button>
+                <button class="nav-item" data-target="panel-dispatch">
+                    <span class="material-icons-outlined">two_wheeler</span>配送调度</button>
+                <button class="nav-item" data-target="panel-service">
+                    <span class="material-icons-outlined">support_agent</span>客户服务</button>
+                <button class="nav-item" data-target="panel-report">
+                    <span class="material-icons-outlined">insert_chart_outlined</span>绩效统计</button>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <span class="material-icons-outlined">account_circle</span>
+                    <span id="sidebar-role-name">管理员</span>
+                </div>
+                <button id="btn-logout" class="md3-btn-text" style="color:var(--md-on-surface-sub);" title="注销">
+                    <span class="material-icons-outlined" style="font-size:20px;">logout</span>
+                </button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <!-- 1. 包裹总览 -->
+            <section id="panel-stats" class="content-panel active-panel">
+                <header class="panel-header">
+                    <h2>实时业务看板</h2>
+                    <p class="subtitle">点击卡片可过滤下方表格</p>
+                </header>
+                <div class="stats-grid" id="stats-grid"></div>
+                <div class="table-container md3-card md3-elevation-1">
+                    <div class="table-header">
+                        <h3 id="table-title">包裹明细 — 全部</h3>
+                        <button id="btn-clear-filter" class="md3-btn-text text-error" style="display:none;">
+                            <span class="material-icons-outlined">clear</span> 清除过滤</button>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr>
+                            <th>单号</th><th>客户</th><th>取件码</th><th>货架</th><th>重量</th><th>代收费</th><th>入库时间</th><th>状态</th>
+                        </tr></thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 2. 包裹入库 -->
+            <section id="panel-inbound" class="content-panel flex-center">
+                <div class="md3-card form-card md3-elevation-1">
+                    <div class="form-header">
+                        <span class="material-icons-outlined text-primary" style="font-size:48px;">move_to_inbox</span>
+                        <h2>入库登记</h2>
+                    </div>
+                    <div class="input-group"><span class="material-icons-outlined">qr_code_scanner</span>
+                        <input type="text" id="in-track" placeholder="快递单号"></div>
+                    <div class="input-group"><span class="material-icons-outlined">person_add</span>
+                        <input type="text" id="in-cust-name" placeholder="客户姓名"></div>
+                    <div class="input-group"><span class="material-icons-outlined">phone</span>
+                        <input type="text" id="in-cust-phone" placeholder="客户手机号"></div>
+                    <div class="input-group"><span class="material-icons-outlined">scale</span>
+                        <input type="number" id="in-weight" step="0.01" placeholder="重量 (kg)"></div>
+                    <div class="input-group"><span class="material-icons-outlined">inventory_2</span>
+                        <select id="in-shelf">
+                            <option value="A-01">A-01</option><option value="A-02">A-02</option>
+                            <option value="B-01">B-01</option><option value="C-01">C-01</option>
+                        </select></div>
+                    <button id="btn-inbound" class="md3-btn md3-btn-primary mt-4">
+                        <span class="material-icons-outlined">save</span> 确认入库</button>
+                </div>
+            </section>
+
+            <!-- 3. 扫码出库 -->
+            <section id="panel-outbound" class="content-panel flex-center">
+                <div class="md3-card form-card text-center md3-elevation-1">
+                    <div class="form-header">
+                        <span class="material-icons-outlined text-success" style="font-size:48px;">outbound</span>
+                        <h2>扫码出库</h2>
+                    </div>
+                    <div class="input-group input-large"><span class="material-icons-outlined">document_scanner</span>
+                        <input type="text" id="out-track" placeholder="输入包裹单号..." autocomplete="off"></div>
+                    <button id="btn-outbound" class="md3-btn md3-btn-success mt-4">
+                        <span class="material-icons-outlined">check_circle</span> 执行出库</button>
+                </div>
+            </section>
+
+            <!-- 4. 寄件服务 -->
+            <section id="panel-send" class="content-panel">
+                <header class="panel-header">
+                    <h2>寄件服务</h2>
+                    <p class="subtitle">运费按重量计算：每公斤 8 元，不足 1kg 按 1kg 计，偏远地区加价 20%</p>
+                </header>
+                <div class="service-grid">
+                    <!-- 寄件表单（左） -->
+                    <div class="md3-card form-card md3-elevation-1" style="width:100%;">
+                        <div class="form-header">
+                            <span class="material-icons-outlined text-tertiary" style="font-size:36px;">local_post_office</span>
+                            <h3>新建寄件</h3>
+                        </div>
+                        <div class="input-group"><span class="material-icons-outlined">person</span>
+                            <input type="text" id="send-name" placeholder="寄件人姓名"></div>
+                        <div class="input-group"><span class="material-icons-outlined">phone</span>
+                            <input type="text" id="send-phone" placeholder="寄件人电话"></div>
+                        <div class="input-group"><span class="material-icons-outlined">place</span>
+                            <input type="text" id="send-dest" placeholder="目的地址"></div>
+                        <div class="input-group"><span class="material-icons-outlined">scale</span>
+                            <input type="number" id="send-weight" step="0.1" placeholder="重量 (kg)"></div>
+                        <label style="display:flex;align-items:center;gap:10px;padding:8px 0;cursor:pointer;user-select:none;">
+                            <input type="checkbox" id="send-remote" style="width:18px;height:18px;accent-color:var(--md-tertiary);cursor:pointer;">
+                            <span class="material-icons-outlined" style="font-size:20px;color:var(--md-on-surface-sub);">terrain</span>
+                            <span style="font-size:15px;">偏远地区（加价 20%）</span>
+                        </label>
+                        <button id="btn-calc-send" class="md3-btn md3-btn-tertiary mt-2">
+                            <span class="material-icons-outlined">receipt_long</span> 结算并生成面单</button>
+                    </div>
+                    <!-- 面单结果（右） -->
+                    <div class="md3-card md3-elevation-1" style="width:100%;display:flex;align-items:center;justify-content:center;padding:40px;">
+                        <div id="waybill-result" style="text-align:center;width:100%;">
+                            <span class="material-icons-outlined" style="font-size:80px;color:var(--md-on-surface-sub);opacity:.3;">receipt_long</span>
+                            <p style="color:var(--md-on-surface-sub);margin-top:12px;">填写信息并点击结算，面单将在此处显示</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- 寄件历史 -->
+                <div class="md3-card md3-elevation-1" style="padding:24px;margin-top:20px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <h3>寄件记录</h3>
+                        <button id="btn-refresh-send" class="md3-btn-outline" style="padding:6px 16px;">刷新</button>
+                    </div>
+                    <table class="data-table">
+                        <thead><tr><th>面单号</th><th>寄件人</th><th>电话</th><th>目的地</th><th>重量</th><th>运费</th><th>时间</th></tr></thead>
+                        <tbody id="send-list"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- 5. 配送调度 -->
+            <section id="panel-dispatch" class="content-panel">
+                <header class="panel-header">
+                    <h2>配送调度</h2>
+                    <p class="subtitle">派发任务 / 确认签收</p>
+                </header>
+                <div class="service-grid">
+                    <!-- 派单表单 -->
+                    <div class="md3-card form-card md3-elevation-1" style="width:100%;">
+                        <div class="form-header">
+                            <span class="material-icons-outlined text-primary" style="font-size:36px;">send</span>
+                            <h3>新建派送任务</h3>
+                        </div>
+                        <div class="input-group"><span class="material-icons-outlined">inventory_2</span>
+                            <input type="text" id="disp-track" placeholder="包裹单号"></div>
+                        <div class="input-group"><span class="material-icons-outlined">badge</span>
+                            <select id="disp-courier"></select></div>
+                        <button id="btn-dispatch" class="md3-btn md3-btn-primary mt-4">
+                            <span class="material-icons-outlined">send</span> 派发任务</button>
+                    </div>
+                    <!-- 待签收列表 -->
+                    <div class="md3-card md3-elevation-1" style="width:100%;padding:24px;">
+                        <h3 style="margin-bottom:16px;">待签收任务</h3>
+                        <table class="data-table" id="task-table">
+                            <thead><tr><th>单号</th><th>配送员</th><th>派单时间</th><th>操作</th></tr></thead>
+                            <tbody id="task-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 6. 客户服务 -->
+            <section id="panel-service" class="content-panel">
+                <header class="panel-header">
+                    <h2>客户服务</h2>
+                    <p class="subtitle">包裹查询 / 异常登记 / 投诉处理</p>
+                </header>
+                <!-- 包裹查询 -->
+                <div class="md3-card md3-elevation-1" style="padding:24px;margin-bottom:20px;">
+                    <h3 style="margin-bottom:12px;">包裹查询</h3>
+                    <div style="display:flex;gap:12px;">
+                        <div class="input-group" style="flex:1"><span class="material-icons-outlined">search</span>
+                            <input type="text" id="search-keyword" placeholder="输入单号查询"></div>
+                        <button id="btn-search" class="md3-btn md3-btn-primary" style="width:auto;padding:12px 24px;">查询</button>
+                    </div>
+                    <div id="search-result" style="margin-top:12px;"></div>
+                </div>
+                <div class="service-grid">
+                    <!-- 异常登记 -->
+                    <div class="md3-card form-card md3-elevation-1" style="width:100%;">
+                        <div class="form-header">
+                            <span class="material-icons-outlined text-error" style="font-size:36px;">warning</span>
+                            <h3>异常件登记</h3>
+                        </div>
+                        <div class="input-group"><input type="text" id="exc-track" placeholder="异常包裹单号"></div>
+                        <div class="input-group mt-2"><select id="exc-type">
+                            <option value="破损">破损</option><option value="滞留">滞留</option>
+                            <option value="退件">退件</option><option value="其他">其他</option></select></div>
+                        <div class="input-group mt-2"><input type="text" id="exc-desc" placeholder="详细描述"></div>
+                        <button id="btn-exception" class="md3-btn md3-btn-error mt-4">上报异常</button>
+                    </div>
+                    <!-- 投诉登记 -->
+                    <div class="md3-card form-card md3-elevation-1" style="width:100%;">
+                        <div class="form-header">
+                            <span class="material-icons-outlined text-primary" style="font-size:36px;">support_agent</span>
+                            <h3>投诉登记</h3>
+                        </div>
+                        <div class="input-group"><span class="material-icons-outlined">person</span>
+                            <input type="text" id="comp-cust-name" placeholder="客户姓名"></div>
+                        <div class="input-group mt-2"><span class="material-icons-outlined">phone</span>
+                            <input type="text" id="comp-cust-phone" placeholder="客户手机号"></div>
+                        <div class="input-group mt-2"><input type="text" id="comp-track" placeholder="关联单号（选填）"></div>
+                        <div class="input-group mt-2"><input type="text" id="comp-content" placeholder="投诉内容"></div>
+                        <button id="btn-complaint" class="md3-btn md3-btn-primary mt-4">提交投诉</button>
+                    </div>
+                </div>
+                <!-- 异常记录（全宽） -->
+                <div class="md3-card md3-elevation-1" style="width:100%;padding:24px;margin-top:20px;">
+                    <h3 style="margin-bottom:12px;">异常记录</h3>
+                    <table class="data-table" style="table-layout:fixed;width:100%;">
+                        <thead><tr>
+                            <th style="width:18%;">单号</th>
+                            <th style="width:10%;">类型</th>
+                            <th style="width:30%;">描述</th>
+                            <th style="width:12%;">状态</th>
+                            <th style="width:30%;">操作</th>
+                        </tr></thead>
+                        <tbody id="exc-list"></tbody>
+                    </table>
+                </div>
+                <!-- 投诉工单（全宽） -->
+                <div class="md3-card md3-elevation-1" style="width:100%;padding:24px;margin-top:20px;">
+                    <h3 style="margin-bottom:12px;">投诉工单</h3>
+                    <table class="data-table"><thead><tr><th>客户</th><th>关联单号</th><th>内容</th><th>状态</th><th>操作</th></tr></thead>
+                    <tbody id="comp-list"></tbody></table>
+                </div>
+            </section>
+
+            <!-- 7. 绩效统计 -->
+            <section id="panel-report" class="content-panel">
+                <header class="panel-header">
+                    <h2>运营绩效统计</h2>
+                    <p class="subtitle">日报 / 配送员工作量 / 营收</p>
+                </header>
+                <div class="report-grid">
+                    <div class="md3-card report-card md3-elevation-1 text-center">
+                        <span class="material-icons-outlined" style="font-size:48px;color:#0b57d0;">store</span>
+                        <h4 class="mt-2">代收费营收</h4>
+                        <div class="report-val" style="color:#0b57d0;" id="rep-pickup-revenue">-</div>
+                    </div>
+                    <div class="md3-card report-card md3-elevation-1 text-center">
+                        <span class="material-icons-outlined text-tertiary" style="font-size:48px;">local_post_office</span>
+                        <h4 class="mt-2">寄件营收</h4>
+                        <div class="report-val text-tertiary" id="rep-send-revenue">-</div>
+                    </div>
+                    <div class="md3-card report-card md3-elevation-1 text-center" style="grid-column: span 2;">
+                        <span class="material-icons-outlined" style="font-size:48px;color:#146c2e;">account_balance</span>
+                        <h4 class="mt-2">总营收</h4>
+                        <div class="report-val" style="color:#146c2e;" id="rep-total-revenue">-</div>
+                    </div>
+                </div>
+                <!-- 日报 -->
+                <div class="md3-card md3-elevation-1" style="padding:24px;margin-top:20px;">
+                    <h3 style="margin-bottom:12px;">近 7 天入库 / 出库日报</h3>
+                    <table class="data-table"><thead><tr><th>日期</th><th>入库量</th><th>出库量</th></tr></thead>
+                    <tbody id="daily-body"></tbody></table>
+                </div>
+                <!-- 配送员工作量 -->
+                <div class="md3-card md3-elevation-1" style="padding:24px;margin-top:20px;">
+                    <h3 style="margin-bottom:12px;">配送员工作量</h3>
+                    <table class="data-table"><thead><tr><th>姓名</th><th>负责区域</th><th>总任务</th><th>已签收</th></tr></thead>
+                    <tbody id="workload-body"></tbody></table>
+                </div>
+                <div class="text-center mt-4">
+                    <button id="btn-refresh-report" class="md3-btn md3-btn-tertiary" style="width:auto;padding:14px 32px;">
+                        <span class="material-icons-outlined">refresh</span> 刷新数据</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
